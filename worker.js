@@ -135,13 +135,65 @@ function formatProducts(products) {
 }
 
 async function answerWithAI(env, messages, products) {
-  const productContext = JSON.stringify(formatProducts(products));
+  const latestUserMessage =
+    [...messages].reverse().find(m => m.role === "user")?.content?.toLowerCase() || "";
+
+  const categoryKeywords = {
+    bracelet: ["bracelet", "bracelets", "bangle", "bangels"],
+    ring: ["ring", "rings"],
+    chain: ["chain", "chains"],
+    watch: ["watch", "watches"],
+    earring: ["earring", "earrings"],
+    pendant: ["pendant", "pendants"],
+    jhumka: ["jhumka", "jhumkas"],
+    "claw clip": ["claw clip", "claw clips"]
+  };
+
+  let relevantProducts = products;
+
+  for (const [category, keywords] of Object.entries(categoryKeywords)) {
+    if (keywords.some(keyword => latestUserMessage.includes(keyword))) {
+      relevantProducts = products.filter(product => {
+        const name = (product.name || "").toLowerCase();
+        const type = (product.type || "").toLowerCase();
+        const tags = (product.tags || []).join(" ").toLowerCase();
+        const description = (product.description || "").toLowerCase();
+
+        const searchableText =
+          `${name} ${type} ${tags} ${description}`;
+
+        const matchesCategory = keywords.some(keyword =>
+          searchableText.includes(keyword)
+        );
+
+        // Never show a clearly named product from another category.
+        if (
+          category === "bracelet" &&
+          /\bring\b/.test(name)
+        ) return false;
+
+        if (
+          category === "ring" &&
+          /\bbracelet\b/.test(name)
+        ) return false;
+
+        return matchesCategory;
+      });
+
+      break;
+    }
+  }
+
+  const productContext = JSON.stringify(
+    formatProducts(relevantProducts)
+  );
 
   const aiMessages = [
     {
       role: "system",
       content:
         SYSTEM_PROMPT +
+        "\n\nIMPORTANT CATEGORY RULE: Only recommend products that match the customer's requested category. Never call a ring a bracelet, a chain a pendant, etc." +
         "\n\nLIVE SILQY SHOPIFY CATALOGUE:\n" +
         productContext,
     },
@@ -153,8 +205,6 @@ async function answerWithAI(env, messages, products) {
     max_tokens: 500,
   });
 }
-
-function html() {
   return `<!DOCTYPE html>
 <html>
 <head>
