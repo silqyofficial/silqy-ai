@@ -423,7 +423,7 @@ document.getElementById("input").addEventListener("keydown", (e) => {
 
 </body>
 </html>`;
-}
+
 
 export default {
   async fetch(request, env) {
