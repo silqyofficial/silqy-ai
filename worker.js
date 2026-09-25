@@ -55,6 +55,10 @@ async function getShopifyProducts(env) {
           id
           title
           handle
+                featuredImage {
+        url
+        altText
+      }
           description
           productType
           tags
@@ -110,6 +114,7 @@ async function getShopifyProducts(env) {
 function formatProducts(products) {
   return products.map((product) => ({
     name: product.title,
+    image: product.featuredImage?.url || null,
     description: product.description,
     type: product.productType,
     tags: product.tags,
