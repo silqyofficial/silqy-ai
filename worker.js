@@ -210,6 +210,7 @@ return {
   products: relevantProducts,
 };
 }
+function html() {
   return `<!DOCTYPE html>
 <html>
 <head>
