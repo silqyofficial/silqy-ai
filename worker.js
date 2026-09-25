@@ -200,10 +200,15 @@ async function answerWithAI(env, messages, products) {
     ...messages,
   ];
 
-  return await env.AI.run(AI_MODEL, {
-    messages: aiMessages,
-    max_tokens: 500,
-  });
+  const aiResult = await env.AI.run(AI_MODEL, {
+  messages: aiMessages,
+  max_tokens: 500,
+});
+
+return {
+  response: aiResult.response,
+  products: relevantProducts,
+};
 }
   return `<!DOCTYPE html>
 <html>
@@ -281,7 +286,44 @@ button {
   color: white;
   font-size: 15px;
 }
-</style>
+.product-card {
+  background: #fff;
+  border: 1px solid #e5e2dd;
+  border-radius: 16px;
+  padding: 12px;
+  margin: 12px 0;
+  box-shadow: 0 4px 18px rgba(0,0,0,.06);
+}
+
+.product-image {
+  width: 100%;
+  display: block;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.product-name {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.product-price {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.product-link {
+  display: inline-block;
+  background: #171717;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 16px;
+  border-radius: 22px;
+  font-size: 14px;
+}   </style>
 </head>
 <body>
 
@@ -341,8 +383,41 @@ async function send() {
 
     const data = await response.json();
 
-    document.querySelector(".ai:last-child").textContent =
-      data.reply || "Sorry, I couldn't respond right now.";
+    const lastAI = document.querySelector(".ai:last-child");
+
+lastAI.textContent =
+  data.reply || "Sorry, I couldn't respond right now.";
+
+if (data.products && data.products.length) {
+  data.products.slice(0, 4).forEach(product => {
+    const card = document.createElement("div");
+    card.className = "product-card";
+
+    card.innerHTML = `
+      ${
+        product.image
+          ? `<img src="${product.image}" class="product-image" alt="${product.name}">`
+          : ""
+      }
+
+      <div class="product-name">${product.name}</div>
+
+      <div class="product-price">
+        ₹${product.price}
+      </div>
+
+      ${
+        product.url
+          ? `<a href="${product.url}" target="_blank" class="product-link">
+              View Product →
+             </a>`
+          : ""
+      }
+    `;
+
+    document.getElementById("chat").appendChild(card);
+  });
+}
 
     messages.push({
       role: "assistant",
@@ -392,8 +467,9 @@ export default {
         );
 
         return Response.json({
-          reply: result.response,
-        });
+  reply: result.response,
+  products: result.products,
+});
       } catch (error) {
         return Response.json(
           {
