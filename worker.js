@@ -78,7 +78,7 @@ async function getShopifyProducts(env) {
             nodes {
               title
               price
-              inventoryQuantity
+              inventoryQuantity: variant.inventoryQuantity > 0 ? "In stock" : "Out of stock",
               selectedOptions {
                 name
                 value
