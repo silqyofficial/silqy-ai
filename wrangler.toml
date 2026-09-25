@@ -5,3 +5,4 @@ workers_dev = true
 
 [ai]
 binding = "AI"
+# SILQY AI Worker
