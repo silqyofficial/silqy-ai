@@ -1,107 +1,230 @@
-const SILQY_SYSTEM_PROMPT = `
-You are SILQY AI, the virtual shopping assistant for SILQY.
+const SHOPIFY_API_VERSION = "2026-07";
+const AI_MODEL = "@cf/meta/llama-3.2-3b-instruct";
+
+const SYSTEM_PROMPT = `
+You are SILQY's AI shopping assistant.
 
 SILQY is a modern jewellery brand.
 
-Help customers with:
-- Jewellery products
-- Product categories
-- Prices
-- Shipping
-- COD
-- Returns
-- General jewellery questions
-
-SILQY categories:
-Bracelets, Chains, Rings, Watches, Earrings, Pendants, Jhumkas and Claw Clips.
-
-Be friendly, elegant, concise and helpful.
-
-IMPORTANT:
-Never invent prices, stock availability, shipping charges,
-order information or policies.
-
-If information is unavailable, clearly say that a SILQY team
-member can help.
-
-Do not pretend to access Shopify orders or customer information.
+Your job:
+- Help customers discover SILQY products.
+- Use ONLY the Shopify product information provided to you.
+- Give accurate product names, descriptions, prices and stock information.
+- If a product is not in the catalogue data, say you cannot find it.
+- NEVER invent a product, price, discount, stock status or policy.
+- Keep answers friendly, elegant and concise.
+- For product recommendations, mention the actual product name and price.
+- If the customer asks about orders, returns, shipping, COD or other information that is not provided, say that you can help with product information but don't have that information yet.
 `;
 
-export default {
-  async fetch(request, env) {
+async function getShopifyAccessToken(env) {
+  const response = await fetch(
+    `https://${env.SHOPIFY_STORE_DOMAIN}/admin/oauth/access_token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: env.SHOPIFY_CLIENT_ID,
+        client_secret: env.SHOPIFY_CLIENT_SECRET,
+      }),
+    }
+  );
 
-    if (request.method === "GET") {
-      return new Response(`
-<!DOCTYPE html>
+  const data = await response.json();
+
+  if (!response.ok || !data.access_token) {
+    throw new Error("Unable to authenticate with Shopify");
+  }
+
+  return data.access_token;
+}
+
+async function getShopifyProducts(env) {
+  const accessToken = await getShopifyAccessToken(env);
+
+  const query = `
+    query GetProducts {
+      products(first: 50) {
+        nodes {
+          id
+          title
+          handle
+          description
+          productType
+          tags
+          totalInventory
+          onlineStoreUrl
+          priceRangeV2 {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+            maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          variants(first: 20) {
+            nodes {
+              title
+              price
+              inventoryQuantity
+              selectedOptions {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch(
+    `https://${env.SHOPIFY_STORE_DOMAIN}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify({ query }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || data.errors) {
+    throw new Error("Unable to read Shopify products");
+  }
+
+  return data.data.products.nodes;
+}
+
+function formatProducts(products) {
+  return products.map((product) => ({
+    name: product.title,
+    description: product.description,
+    type: product.productType,
+    tags: product.tags,
+    stock: product.totalInventory,
+    price:
+      product.priceRangeV2.minVariantPrice.amount ===
+      product.priceRangeV2.maxVariantPrice.amount
+        ? `${product.priceRangeV2.minVariantPrice.amount} ${product.priceRangeV2.minVariantPrice.currencyCode}`
+        : `${product.priceRangeV2.minVariantPrice.amount}-${product.priceRangeV2.maxVariantPrice.amount} ${product.priceRangeV2.minVariantPrice.currencyCode}`,
+    url: product.onlineStoreUrl,
+    variants: product.variants.nodes.map((variant) => ({
+      name: variant.title,
+      price: variant.price,
+      stock: variant.inventoryQuantity,
+      options: variant.selectedOptions,
+    })),
+  }));
+}
+
+async function answerWithAI(env, messages, products) {
+  const productContext = JSON.stringify(formatProducts(products));
+
+  const aiMessages = [
+    {
+      role: "system",
+      content:
+        SYSTEM_PROMPT +
+        "\n\nLIVE SILQY SHOPIFY CATALOGUE:\n" +
+        productContext,
+    },
+    ...messages,
+  ];
+
+  return await env.AI.run(AI_MODEL, {
+    messages: aiMessages,
+    max_tokens: 500,
+  });
+}
+
+function html() {
+  return `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SILQY AI</title>
 <style>
-body{
-  margin:0;
-  font-family:Arial,sans-serif;
-  background:#f8f5f0;
+body {
+  margin: 0;
+  background: #faf9f7;
+  color: #171717;
+  font-family: Arial, sans-serif;
 }
-.header{
-  background:#111;
-  color:white;
-  padding:20px;
-  text-align:center;
+.header {
+  padding: 24px 20px 14px;
+  text-align: center;
+  border-bottom: 1px solid #e5e2dd;
 }
-.logo{
-  font-size:28px;
-  letter-spacing:6px;
+.logo {
+  font-size: 30px;
+  letter-spacing: 7px;
+  font-weight: 500;
 }
-.subtitle{
-  font-size:11px;
-  letter-spacing:3px;
-  margin-top:6px;
+.subtitle {
+  margin-top: 7px;
+  font-size: 11px;
+  letter-spacing: 3px;
+  opacity: .6;
 }
-#chat{
-  height:65vh;
-  overflow:auto;
-  padding:18px;
+.chat {
+  max-width: 700px;
+  margin: auto;
+  padding: 20px;
 }
-.msg{
-  padding:12px 15px;
-  margin:10px 0;
-  border-radius:18px;
-  max-width:80%;
-  line-height:1.4;
+.message {
+  margin: 12px 0;
+  padding: 13px 15px;
+  border-radius: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
-.user{
-  background:#111;
-  color:white;
-  margin-left:auto;
+.user {
+  background: #171717;
+  color: white;
+  margin-left: 35px;
 }
-.ai{
-  background:white;
-  color:#222;
+.ai {
+  background: white;
+  border: 1px solid #e5e2dd;
+  margin-right: 35px;
 }
-.bottom{
-  display:flex;
-  padding:12px;
-  background:white;
-  gap:8px;
+.input {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  background: rgba(250,249,247,.96);
+  border-top: 1px solid #e5e2dd;
+  display: flex;
+  gap: 8px;
 }
-input{
-  flex:1;
-  padding:14px;
-  border:1px solid #ddd;
-  border-radius:25px;
-  font-size:16px;
+input {
+  flex: 1;
+  padding: 14px;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  font-size: 16px;
 }
-button{
-  border:0;
-  background:#111;
-  color:white;
-  padding:0 20px;
-  border-radius:25px;
+button {
+  border: 0;
+  border-radius: 25px;
+  padding: 0 20px;
+  background: #171717;
+  color: white;
+  font-size: 15px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="header">
@@ -109,122 +232,121 @@ button{
   <div class="subtitle">AI SHOPPING ASSISTANT</div>
 </div>
 
-<div id="chat">
-  <div class="msg ai">
-    Hi! 👋 Welcome to SILQY. How can I help you today?
+<div id="chat" class="chat">
+  <div class="message ai">
+    Hi! I'm SILQY AI ✨<br><br>
+    I can help you find jewellery from our collection.
   </div>
 </div>
 
-<div class="bottom">
-  <input id="input" placeholder="Ask SILQY AI..." />
+<div class="input">
+  <input id="input" placeholder="Ask about SILQY jewellery..." />
   <button onclick="send()">Send</button>
 </div>
 
 <script>
-let messages = [];
+const messages = [];
 
-async function send(){
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = "message " + type;
+  div.textContent = text;
+  document.getElementById("chat").appendChild(div);
+  window.scrollTo(0, document.body.scrollHeight);
+}
 
+async function send() {
   const input = document.getElementById("input");
   const text = input.value.trim();
 
-  if(!text) return;
+  if (!text) return;
 
-  addMessage(text,"user");
-  input.value="";
+  input.value = "";
 
-  const loading = addMessage("Thinking...","ai");
+  addMessage(text, "user");
 
-  try{
+  messages.push({
+    role: "user",
+    content: text
+  });
 
-    const response = await fetch("/chat",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
+  addMessage("Thinking...", "ai");
+
+  try {
+    const response = await fetch("/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body:JSON.stringify({
-        messages:[
-          ...messages,
-          {
-            role:"user",
-            content:text
-          }
-        ]
-      })
+      body: JSON.stringify({ messages })
     });
 
     const data = await response.json();
 
-    loading.remove();
-
-    addMessage(data.reply || "Sorry, I couldn't answer that.","ai");
-
-    messages.push({
-      role:"user",
-      content:text
-    });
+    document.querySelector(".ai:last-child").textContent =
+      data.reply || "Sorry, I couldn't respond right now.";
 
     messages.push({
-      role:"assistant",
-      content:data.reply
+      role: "assistant",
+      content: data.reply
     });
-
-  }catch(error){
-
-    loading.remove();
-    addMessage("Sorry, something went wrong. Please try again.","ai");
-
+  } catch (error) {
+    document.querySelector(".ai:last-child").textContent =
+      "Sorry, something went wrong. Please try again.";
   }
 }
 
-function addMessage(text,type){
-
-  const chat=document.getElementById("chat");
-
-  const div=document.createElement("div");
-  div.className="msg "+type;
-  div.textContent=text;
-
-  chat.appendChild(div);
-  chat.scrollTop=chat.scrollHeight;
-
-  return div;
-}
+document.getElementById("input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") send();
+});
 </script>
 
 </body>
-</html>
-      `, {
+</html>`;
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (request.method === "GET") {
+      return new Response(html(), {
         headers: {
-          "Content-Type": "text/html"
-        }
-      });
-    }
-
-    if (request.method === "POST" && new URL(request.url).pathname === "/chat") {
-
-      const body = await request.json();
-
-      const messages = [
-        {
-          role: "system",
-          content: SILQY_SYSTEM_PROMPT
+          "Content-Type": "text/html;charset=UTF-8",
         },
-        ...(body.messages || [])
-      ];
-
-      const result = await env.AI.run(
-        "@cf/meta/llama-3.2-3b-instruct",
-        {
-          messages
-        }
-      );
-
-      return Response.json({
-        reply: result.response
       });
     }
 
-    return new Response("SILQY AI is running.");
-  }
+    if (request.method === "POST" && url.pathname === "/chat") {
+      try {
+        const body = await request.json();
+
+        const messages = Array.isArray(body.messages)
+          ? body.messages.slice(-10)
+          : [];
+
+        const products = await getShopifyProducts(env);
+
+        const result = await answerWithAI(
+          env,
+          messages,
+          products
+        );
+
+        return Response.json({
+          reply: result.response,
+        });
+      } catch (error) {
+        return Response.json(
+          {
+            reply:
+              "I'm having trouble connecting to the SILQY catalogue right now. Please try again.",
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
 };
