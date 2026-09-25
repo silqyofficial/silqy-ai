@@ -393,28 +393,15 @@ if (data.products && data.products.length) {
     const card = document.createElement("div");
     card.className = "product-card";
 
-    card.innerHTML = `
-      ${
-        product.image
-          ? `<img src="${product.image}" class="product-image" alt="${product.name}">`
-          : ""
-      }
-
-      <div class="product-name">${product.name}</div>
-
-      <div class="product-price">
-        ₹${product.price}
-      </div>
-
-      ${
-        product.url
-          ? `<a href="${product.url}" target="_blank" class="product-link">
-              View Product →
-             </a>`
-          : ""
-      }
-    `;
-
+    card.innerHTML =
+  (product.image
+    ? '<img src="' + product.image + '" class="product-image" alt="' + product.name + '">'
+    : "") +
+  '<div class="product-name">' + product.name + "</div>" +
+  '<div class="product-price">₹' + product.price + "</div>" +
+  (product.url
+    ? '<a href="' + product.url + '" target="_blank" class="product-link">View Product →</a>'
+    : "");
     document.getElementById("chat").appendChild(card);
   });
 }
