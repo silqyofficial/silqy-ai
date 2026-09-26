@@ -127,11 +127,12 @@ function formatProducts(products) {
         : `${product.priceRangeV2.minVariantPrice.amount}-${product.priceRangeV2.maxVariantPrice.amount} ${product.priceRangeV2.minVariantPrice.currencyCode}`,
     url: product.onlineStoreUrl,
     variants: product.variants.nodes.map((variant) => ({
-      name: variant.title,
-      price: variant.price,
-      stock: variant.inventoryQuantity,
-      options: variant.selectedOptions,
-    })),
+  id: variant.id,
+  name: variant.title,
+  price: variant.price,
+  stock: variant.inventoryQuantity,
+  options: variant.selectedOptions,
+})),
   }));
 }
 
