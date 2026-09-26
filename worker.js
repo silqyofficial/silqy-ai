@@ -259,7 +259,7 @@ const detailedProductContext = formatProducts(relevantProducts).map(product => (
         "\n\nLIVE SILQY SHOPIFY CATALOGUE:\n" +
 productContext +
 "\n\nDETAILED PRODUCT INFORMATION:\n" +
-JSON.stringify(detailedProductContext),
+JSON.stringify(detailedProductContext) +
 "\n\nRECENT CONVERSATION CONTEXT:\n" +
 conversationContext,
     },
