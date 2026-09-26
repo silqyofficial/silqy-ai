@@ -231,6 +231,16 @@ let relevantProducts = products;
   });
 }
 
+const detailedProductContext = formatProducts(relevantProducts).map(product => ({
+  name: product.name,
+  description: product.description,
+  type: product.type,
+  tags: product.tags,
+  price: product.price,
+  stock: product.stock,
+  variants: product.variants
+}));
+
    const productContext = JSON.stringify(
     formatProducts(relevantProducts)
   );
