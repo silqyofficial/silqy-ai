@@ -351,6 +351,32 @@ button {
 const messages = [];
 
 function addMessage(text, type) {
+async function addToCart(variantId) {
+  try {
+    const response = await fetch("/cart/add.js", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        items: [
+          {
+            id: variantId,
+            quantity: 1
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Cart request failed");
+    }
+
+    window.location.href = "/cart";
+  } catch (error) {
+    alert("Sorry, we couldn't add this item to your cart.");
+  }
+}
   const div = document.createElement("div");
   div.className = "message " + type;
   div.textContent = text;
@@ -402,6 +428,7 @@ if (data.products && data.products.length) {
     : "") +
   '<div class="product-name">' + product.name + "</div>" +
   '<div class="product-price">₹' + product.price + "</div>" +
+  '<button class="add-cart-button" onclick="addToCart(\'' + product.variants[0].id + '\')">Add to Cart</button>' +
   (product.url
     ? '<a href="' + product.url + '" target="_blank" class="product-link">View Product →</a>'
     : "");
