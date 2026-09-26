@@ -207,7 +207,7 @@ async function answerWithAI(env, messages, products) {
 
 return {
   response: aiResult.response,
-  products: relevantProducts,
+  products: formatProducts(relevantProducts),
 };
 }
 function html() {
