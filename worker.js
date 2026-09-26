@@ -118,7 +118,7 @@ function formatProducts(products) {
     description: product.description,
     type: product.productType,
     tags: product.tags,
-    stock: product.totalInventory,
+    stock: product.totalInventory > 0 ? "In stock" : "Out of stock",
     price:
       product.priceRangeV2.minVariantPrice.amount ===
       product.priceRangeV2.maxVariantPrice.amount
