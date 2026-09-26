@@ -474,13 +474,9 @@ if (data.products && data.products.length) {
   '<div class="product-price">₹' + product.price + "</div>" +
   (product.url
     ? '<a href="' + product.url + '" target="_blank" class="product-link">View Product →</a>'
-    : "") +
-  (product.variants && product.variants.length
-    ? '<button class="add-cart-button" onclick="addToCart(\'' +
-      product.variants[0].id +
-      '\')">Add to Cart</button>'
     : "");
-    document.getElementById("chat").appendChild(card);
+
+document.getElementById("chat").appendChild(card);
   });
 }
 
