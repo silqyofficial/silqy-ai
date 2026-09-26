@@ -143,6 +143,11 @@ async function answerWithAI(env, messages, products) {
   const latestUserMessage =
     [...messages].reverse().find(m => m.role === "user")?.content?.toLowerCase() || "";
 
+const conversationContext = messages
+  .slice(-10)
+  .map(message => `${message.role}: ${message.content}`)
+  .join("\n");
+
 const styleKeywords = [
   "gold",
   "silver",
