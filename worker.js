@@ -151,7 +151,19 @@ async function answerWithAI(env, messages, products) {
     "claw clip": ["claw clip", "claw clips"]
   };
 
-  let relevantProducts = products;
+  const priceMatch = latestUserMessage.match(
+  /(?:under|below|less than|upto|up to)\s*₹?\s*(\d+)/i
+);
+
+const maxPrice = priceMatch ? Number(priceMatch[1]) : null;
+
+const priceMatch = latestUserMessage.match(
+  /(?:under|below|less than|upto|up to)\s*₹?\s*(\d+)/i
+);
+
+const maxPrice = priceMatch ? Number(priceMatch[1]) : null;
+
+let relevantProducts = products;
 
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
     if (keywords.some(keyword => latestUserMessage.includes(keyword))) {
