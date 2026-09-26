@@ -113,7 +113,7 @@ async function getShopifyProducts(env) {
 
 function formatProducts(products) {
   return products.map((product) => ({
-    name: product.title,
+    name: product.name ,
     image: product.featuredImage?.url || null,
     description: product.description,
     type: product.productType,
