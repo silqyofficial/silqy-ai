@@ -140,6 +140,23 @@ async function answerWithAI(env, messages, products) {
   const latestUserMessage =
     [...messages].reverse().find(m => m.role === "user")?.content?.toLowerCase() || "";
 
+const styleKeywords = [
+  "gold",
+  "silver",
+  "black",
+  "white",
+  "rose gold",
+  "minimal",
+  "minimalist",
+  "elegant",
+  "classic",
+  "statement"
+];
+
+const requestedStyles = styleKeywords.filter(style =>
+  latestUserMessage.includes(style)
+);
+
   const categoryKeywords = {
     bracelet: ["bracelet", "bracelets", "bangle", "bangels"],
     ring: ["ring", "rings"],
@@ -194,7 +211,24 @@ let relevantProducts = products;
     }
   }
 
-  const productContext = JSON.stringify(
+ if (requestedStyles.length) {
+  relevantProducts = relevantProducts.filter(product => {
+    const searchableText = [
+      product.name,
+      product.type,
+      ...(product.tags || []),
+      product.description
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return requestedStyles.some(style =>
+      searchableText.includes(style)
+    );
+  });
+}
+
+   const productContext = JSON.stringify(
     formatProducts(relevantProducts)
   );
 
