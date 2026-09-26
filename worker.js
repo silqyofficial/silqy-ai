@@ -497,38 +497,7 @@ if (data.products && data.products.length) {
 document.getElementById("input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") send();
 });
-async function addToCart(variantId) {
-  try {
-    const response = await fetch(
-      "https://silqy.in/cart/add.js",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          items: [
-            {
-              id: Number(variantId),
-              quantity: 1
-            }
-          ]
-        })
-      }
-    );
 
-    if (!response.ok) {
-      throw new Error("Cart request failed");
-    }
-
-    const data = await response.json();
-
-    alert("Added to cart ✦");
-  } catch (error) {
-    console.error(error);
-    alert("Unable to add this product to cart.");
-  }
-}
 </script>
 
 </body>
