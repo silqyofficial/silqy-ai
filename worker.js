@@ -157,11 +157,7 @@ async function answerWithAI(env, messages, products) {
 
 const maxPrice = priceMatch ? Number(priceMatch[1]) : null;
 
-const priceMatch = latestUserMessage.match(
-  /(?:under|below|less than|upto|up to)\s*₹?\s*(\d+)/i
-);
 
-const maxPrice = priceMatch ? Number(priceMatch[1]) : null;
 
 let relevantProducts = products;
 
