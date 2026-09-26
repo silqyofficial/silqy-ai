@@ -75,10 +75,11 @@ async function getShopifyProducts(env) {
             }
           }
           variants(first: 20) {
-            nodes {
-              title
-              price
-              inventoryQuantity
+  nodes {
+    id
+    title
+    price
+    inventoryQuantity
               selectedOptions {
                 name
                 value
