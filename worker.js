@@ -260,6 +260,8 @@ const detailedProductContext = formatProducts(relevantProducts).map(product => (
 productContext +
 "\n\nDETAILED PRODUCT INFORMATION:\n" +
 JSON.stringify(detailedProductContext),
+"\n\nRECENT CONVERSATION CONTEXT:\n" +
+conversationContext,
     },
     ...messages,
   ];
