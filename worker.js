@@ -252,7 +252,9 @@ const detailedProductContext = formatProducts(relevantProducts).map(product => (
         SYSTEM_PROMPT +
         "\n\nIMPORTANT CATEGORY RULE: Only recommend products that match the customer's requested category. Never call a ring a bracelet, a chain a pendant, etc." +
         "\n\nLIVE SILQY SHOPIFY CATALOGUE:\n" +
-        productContext,
+productContext +
+"\n\nDETAILED PRODUCT INFORMATION:\n" +
+JSON.stringify(detailedProductContext),
     },
     ...messages,
   ];
